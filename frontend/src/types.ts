@@ -11,6 +11,7 @@ export interface Ticket {
   status: TicketStatus;
   raw_payload: { body?: string };
   created_at: string | null;
+  sender_email: string | null;
   ai_category_id: number | null;
   ai_urgency: number | null;
   ai_extracted_location: string | null;
@@ -18,6 +19,8 @@ export interface Ticket {
   ai_extracted_phone: string | null;
   ai_drafted_response: string | null;
   flagged_for_safety: boolean;
+  approved_at: string | null;
+  citizen_notified_at: string | null;
   input_tokens: number;
   output_tokens: number;
 }

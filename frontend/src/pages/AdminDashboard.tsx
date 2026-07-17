@@ -1,9 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { KeyRound, LogOut, Plus } from 'lucide-react';
+import Header from '../components/Header';
 import adminApi from '../adminApi';
 import { clearAdminToken } from '../adminAuth';
 import type { TenantSummary } from '../types';
+
+const NAVY = 'oklch(0.27 0.06 250)';
 
 function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
   const [name, setName] = useState('');
@@ -29,7 +32,7 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg shadow-sm p-5 mb-6 flex flex-wrap gap-4 items-end">
+    <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-[10px] shadow-sm p-5 mb-6 flex flex-wrap gap-4 items-end">
       <label className="text-sm text-slate-700">
         Municipality Name
         <input
@@ -63,7 +66,8 @@ function CreateTenantForm({ onCreated }: { onCreated: () => void }) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
+        className="flex items-center gap-2 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-60"
+        style={{ background: NAVY }}
       >
         <Plus size={16} /> Create Tenant
       </button>
@@ -116,7 +120,8 @@ function ResetCredentialsRow({ tenant, onDone }: { tenant: TenantSummary; onDone
       <button
         type="submit"
         disabled={isSubmitting}
-        className="bg-slate-800 text-white px-3 py-1.5 rounded-md text-xs font-medium hover:bg-slate-900 disabled:opacity-60"
+        className="text-white px-3 py-1.5 rounded-md text-xs font-medium disabled:opacity-60"
+        style={{ background: NAVY }}
       >
         Save
       </button>
@@ -153,35 +158,34 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-900">Admin</h1>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
+    <div className="min-h-screen">
+      <Header label="Admin">
+        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/80 hover:text-white">
           <LogOut size={16} /> Log Out
         </button>
-      </header>
+      </Header>
 
       <div className="max-w-6xl mx-auto p-6">
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border border-slate-200 rounded-lg p-5">
-            <p className="text-xs font-semibold uppercase text-slate-500">Tenants</p>
-            <p className="text-2xl font-bold text-slate-900">{tenants.length}</p>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tenants</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{tenants.length}</p>
           </div>
-          <div className="bg-white border border-slate-200 rounded-lg p-5">
-            <p className="text-xs font-semibold uppercase text-slate-500">Pending Tickets</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.pending}</p>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pending Tickets</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{totals.pending}</p>
           </div>
-          <div className="bg-white border border-slate-200 rounded-lg p-5">
-            <p className="text-xs font-semibold uppercase text-slate-500">Tokens Used</p>
-            <p className="text-2xl font-bold text-slate-900">{totals.tokens.toLocaleString()}</p>
+          <div className="bg-white border border-slate-200 rounded-[10px] p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tokens Used</p>
+            <p className="text-2xl font-bold mt-1" style={{ color: 'oklch(0.35 0.06 190)' }}>{totals.tokens.toLocaleString()}</p>
           </div>
         </div>
 
         <CreateTenantForm onCreated={fetchTenants} />
 
-        <div className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-[10px] shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 text-left text-xs font-semibold uppercase text-slate-500">
+            <thead className="bg-slate-50 border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-5 py-3">Municipality</th>
                 <th className="px-5 py-3">Login Email</th>
@@ -200,7 +204,8 @@ export default function AdminDashboard() {
                   <td className="px-5 py-4">
                     <button
                       onClick={() => setResettingId(resettingId === tenant.id ? null : tenant.id)}
-                      className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
+                      className="flex items-center gap-1 text-xs font-medium"
+                      style={{ color: NAVY }}
                     >
                       <KeyRound size={14} /> Reset Credentials
                     </button>

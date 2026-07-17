@@ -73,3 +73,39 @@ def test_receive_webhook_creates_ticket_using_tenants_real_categories(mocker):
         db.delete(tenant)
         db.commit()
         db.close()
+
+
+def test_receive_webhook_captures_real_sender_email_from_payload(mocker):
+    db = SessionLocal()
+    tenant = Tenant(name="Sender Email Test Municipality", config={})
+    db.add(tenant)
+    db.commit()
+    db.refresh(tenant)
+
+    try:
+        mock_response = MagicMock()
+        mock_response.parsed = TriageResult(
+            category_id=None,
+            urgency_score=2,
+            extracted_location=None,
+            extracted_email=None,
+            extracted_phone=None,
+            drafted_response="Thanks for reaching out.",
+        )
+        mock_response.usage_metadata.prompt_token_count = 10
+        mock_response.usage_metadata.candidates_token_count = 5
+        mocker.patch("ai_pipeline.client.models.generate_content", return_value=mock_response)
+
+        payload = {"from": "real.citizen@example.com", "body": "There's trash piling up on 3rd St."}
+        response = client.post(f"/webhook/{tenant.id}", json=payload)
+
+        assert response.status_code == 200
+        ticket = db.query(Ticket).filter(Ticket.id == response.json()["ticket_id"]).first()
+        # The real envelope sender takes precedence, independent of anything the AI extracted from the body.
+        assert ticket.sender_email == "real.citizen@example.com"
+    finally:
+        db.query(Ticket).filter(Ticket.tenant_id == tenant.id).delete()
+        db.query(Category).filter(Category.tenant_id == tenant.id).delete()
+        db.delete(tenant)
+        db.commit()
+        db.close()

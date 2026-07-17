@@ -1,26 +1,58 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, Download, LogOut, Wrench } from 'lucide-react';
+import { AlertTriangle, Download, LogOut, Wrench } from 'lucide-react';
 import TicketDetail from './TicketDetail';
+import ApprovedTicketDetail from './ApprovedTicketDetail';
+import Header from './Header';
 import tenantApi from '../tenantApi';
 import { clearTenantToken } from '../tenantAuth';
 import type { Category, Ticket } from '../types';
 
+const PRIORITY_COLORS: Record<number, string> = {
+  5: 'oklch(0.55 0.2 25)',
+  4: 'oklch(0.65 0.18 45)',
+  3: 'oklch(0.75 0.15 85)',
+  2: 'oklch(0.6 0.13 125)',
+  1: 'oklch(0.55 0.12 145)',
+};
+
+function relativeTime(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const minutes = Math.round((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hr${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+type QueueView = 'pending' | 'approved';
+
 export default function TicketQueue() {
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [view, setView] = useState<QueueView>('pending');
+  const [pendingTickets, setPendingTickets] = useState<Ticket[]>([]);
+  const [approvedTickets, setApprovedTickets] = useState<Ticket[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
   const navigate = useNavigate();
 
-  const fetchTickets = () => {
+  const fetchPending = () => {
     tenantApi.get('/api/tickets/pending')
-      .then(response => setTickets(response.data))
-      .catch(error => console.error("Error fetching tickets:", error));
+      .then(response => setPendingTickets(response.data))
+      .catch(error => console.error("Error fetching pending tickets:", error));
+  };
+
+  const fetchApproved = () => {
+    tenantApi.get('/api/tickets/approved')
+      .then(response => setApprovedTickets(response.data))
+      .catch(error => console.error("Error fetching approved tickets:", error));
   };
 
   useEffect(() => {
-    fetchTickets();
+    fetchPending();
+    fetchApproved();
     tenantApi.get('/api/categories')
       .then(response => setCategories(response.data))
       .catch(error => console.error("Error fetching categories:", error));
@@ -28,7 +60,13 @@ export default function TicketQueue() {
 
   const handleApproved = () => {
     setSelectedId(null);
-    fetchTickets();
+    fetchPending();
+    fetchApproved();
+  };
+
+  const handleSelectView = (nextView: QueueView) => {
+    setView(nextView);
+    setSelectedId(null);
   };
 
   const handleLogout = () => {
@@ -52,85 +90,116 @@ export default function TicketQueue() {
       .catch((error) => console.error('Error exporting tickets:', error));
   };
 
+  const tickets = view === 'pending' ? pendingTickets : approvedTickets;
   const selectedTicket = tickets.find((ticket) => ticket.id === selectedId) ?? null;
+  const categoryName = (id: number | null) => categories.find((c) => c.id === id)?.name;
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-slate-800">Pending Review Queue</h2>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <button
-              onClick={() => setToolsOpen((open) => !open)}
-              className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
-            >
-              <Wrench size={16} /> Tools
-            </button>
-            {toolsOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
-                <button
-                  onClick={handleExportCsv}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                >
-                  <Download size={14} /> Export All Tickets (CSV)
-                </button>
-              </div>
-            )}
-          </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-            <LogOut size={16} /> Log Out
+    <div className="h-screen flex flex-col">
+      <Header>
+        <div className="relative">
+          <button
+            onClick={() => setToolsOpen((open) => !open)}
+            className="flex items-center gap-2 text-sm text-white/80 hover:text-white"
+          >
+            <Wrench size={16} /> Tools
           </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <div className="flex flex-col gap-4">
-          {tickets.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-slate-200">
-              No tickets pending review. You're all caught up!
-            </div>
-          ) : (
-            tickets.map((ticket: Ticket) => (
+          {toolsOpen && (
+            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-10 text-slate-700">
               <button
-                key={ticket.id}
-                onClick={() => setSelectedId(ticket.id)}
-                className={`text-left bg-white border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow flex justify-between items-start ${
-                  ticket.id === selectedId ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200'
-                }`}
+                onClick={handleExportCsv}
+                className="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 flex items-center gap-2"
               >
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="font-semibold text-slate-900">Ticket #{ticket.id}</span>
-                    {ticket.flagged_for_safety && (
-                      <span className="flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded-full">
-                        <AlertTriangle size={14} /> Emergency Flag
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-slate-600 line-clamp-2 max-w-2xl">
-                    {ticket.ai_drafted_response || "Waiting for AI extraction..."}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-end gap-2 text-sm shrink-0 ml-4">
-                  <span className="flex items-center gap-1 text-slate-500">
-                    <Clock size={14} />
-                    {ticket.created_at ? new Date(ticket.created_at).toLocaleDateString() : '—'}
-                  </span>
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                    Urgency: {ticket.ai_urgency || "?"}/5
-                  </span>
-                </div>
+                <Download size={14} /> Export All Tickets (CSV)
               </button>
-            ))
+            </div>
           )}
         </div>
+        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/80 hover:text-white ml-4">
+          <LogOut size={16} /> Log Out
+        </button>
+      </Header>
 
-        <div className="lg:sticky lg:top-6">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+        <div className="lg:w-[360px] lg:flex-none border-b lg:border-b-0 lg:border-r border-black/[0.06] bg-white flex flex-col min-h-0">
+          <div className="flex border-b border-black/[0.06] flex-none">
+            <button
+              onClick={() => handleSelectView('pending')}
+              className="flex-1 px-[18px] py-[14px] font-bold text-[15px] text-left"
+              style={
+                view === 'pending'
+                  ? { color: 'oklch(0.27 0.06 250)', borderBottom: '2px solid oklch(0.27 0.06 250)', marginBottom: '-1px' }
+                  : { color: 'oklch(0.5 0.01 90)' }
+              }
+            >
+              Inbox <span className="font-medium">({pendingTickets.length})</span>
+            </button>
+            <button
+              onClick={() => handleSelectView('approved')}
+              className="flex-1 px-[18px] py-[14px] font-bold text-[15px] text-left"
+              style={
+                view === 'approved'
+                  ? { color: 'oklch(0.27 0.06 250)', borderBottom: '2px solid oklch(0.27 0.06 250)', marginBottom: '-1px' }
+                  : { color: 'oklch(0.5 0.01 90)' }
+              }
+            >
+              Approved <span className="font-medium">({approvedTickets.length})</span>
+            </button>
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {tickets.length === 0 ? (
+              <div className="p-8 text-center text-sm text-slate-500">
+                {view === 'pending'
+                  ? "No tickets pending review. You're all caught up!"
+                  : 'No tickets have been approved yet.'}
+              </div>
+            ) : (
+              tickets.map((ticket) => (
+                <button
+                  key={ticket.id}
+                  onClick={() => setSelectedId(ticket.id)}
+                  className="w-full text-left px-[18px] py-3 border-b border-black/[0.04] block"
+                  style={
+                    ticket.id === selectedId
+                      ? { background: 'oklch(0.94 0.01 250 / 0.5)', borderLeft: '3px solid oklch(0.27 0.06 250)' }
+                      : undefined
+                  }
+                >
+                  <div className="flex gap-2 items-center mb-[3px]">
+                    <span
+                      className="w-5 h-5 rounded-[5px] text-white text-[11px] font-bold flex items-center justify-center flex-none"
+                      style={{ background: PRIORITY_COLORS[ticket.ai_urgency ?? 1] ?? '#94a3b8' }}
+                    >
+                      {ticket.ai_urgency ?? '?'}
+                    </span>
+                    <span className="font-semibold text-[13px] flex-1 truncate">
+                      {ticket.raw_payload?.body?.slice(0, 60) || 'Waiting for AI extraction...'}
+                    </span>
+                    {ticket.flagged_for_safety && (
+                      <AlertTriangle size={13} className="text-red-600 flex-none" aria-label="Emergency flag" />
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500 pl-7">
+                    {categoryName(ticket.ai_category_id) ?? 'Uncategorized'} ·{' '}
+                    {view === 'pending'
+                      ? relativeTime(ticket.created_at)
+                      : `approved ${relativeTime(ticket.approved_at)}`}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
           {selectedTicket ? (
-            <TicketDetail ticket={selectedTicket} categories={categories} onApproved={handleApproved} />
+            view === 'pending' ? (
+              <TicketDetail ticket={selectedTicket} categories={categories} onApproved={handleApproved} />
+            ) : (
+              <ApprovedTicketDetail ticket={selectedTicket} categories={categories} />
+            )
           ) : (
-            <div className="p-8 text-center text-slate-500 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="h-full flex items-center justify-center text-sm text-slate-500">
               Select a ticket to review the original text and AI analysis.
             </div>
           )}

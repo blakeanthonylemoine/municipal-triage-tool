@@ -4,11 +4,13 @@ tenant_service.py pattern already used for tenant provisioning.
 """
 import csv
 import io
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
 from ai_pipeline import evaluate_ticket
-from models import Category, Ticket, TicketStatus
+from models import Category, Tenant, Ticket, TicketStatus
+from notification_service import notify_citizen
 
 
 def _categories_prompt_string(db: Session, tenant_id: int) -> str:
@@ -26,6 +28,9 @@ def create_ticket_from_webhook(db: Session, tenant_id: int, payload: dict) -> Ti
         tenant_id=tenant_id,
         raw_payload=payload,
         status=TicketStatus.PENDING_REVIEW,
+        # Real sender metadata from the forwarded email, when the ingestion
+        # source provides it -- authoritative over the AI's best guess.
+        sender_email=payload.get("from"),
         ai_category_id=ai_result.category_id,
         ai_urgency=ai_result.urgency_score,
         ai_extracted_location=ai_result.extracted_location,
@@ -45,8 +50,16 @@ def approve_ticket(db: Session, ticket: Ticket, updates: dict) -> Ticket:
     for field, value in updates.items():
         setattr(ticket, field, value)
     ticket.status = TicketStatus.APPROVED
+    ticket.approved_at = datetime.now(UTC)
     db.commit()
     db.refresh(ticket)
+
+    tenant = db.query(Tenant).filter(Tenant.id == ticket.tenant_id).first()
+    if notify_citizen(tenant, ticket):
+        ticket.citizen_notified_at = datetime.now(UTC)
+        db.commit()
+        db.refresh(ticket)
+
     return ticket
 
 
@@ -57,21 +70,24 @@ def export_tickets_csv(db: Session, tenant_id: int) -> str:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow([
-        "Ticket ID", "Status", "Created At", "Category", "Urgency",
-        "Location", "Email", "Phone", "Original Complaint", "Drafted Response", "Flagged For Safety",
+        "Ticket ID", "Status", "Created At", "Approved At", "Category", "Urgency",
+        "Location", "Email", "Phone", "Original Complaint", "Drafted Response",
+        "Flagged For Safety", "Citizen Notified At",
     ])
     for ticket in tickets:
         writer.writerow([
             ticket.id,
             ticket.status.value,
             ticket.created_at.isoformat() if ticket.created_at else "",
+            ticket.approved_at.isoformat() if ticket.approved_at else "",
             category_names.get(ticket.ai_category_id, ""),
             ticket.ai_urgency or "",
             ticket.ai_extracted_location or "",
-            ticket.ai_extracted_email or "",
+            ticket.sender_email or ticket.ai_extracted_email or "",
             ticket.ai_extracted_phone or "",
             (ticket.raw_payload or {}).get("body", ""),
             ticket.ai_drafted_response or "",
             "Yes" if ticket.flagged_for_safety else "No",
+            ticket.citizen_notified_at.isoformat() if ticket.citizen_notified_at else "",
         ])
     return buffer.getvalue()

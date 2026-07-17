@@ -22,7 +22,7 @@
 |---|---|---|
 | Ingestion Pipeline | A webhook endpoint that accepts unstructured, forwarded email text payloads. | Correctly parses POST bodies without dropping requests. |
 | ML Triage Engine | Gemini 3.5 Flash prompt pipeline extracting a strict Pydantic JSON object from text. | Categorization, Urgency (1–5), and Location extracted flawlessly. |
-| Zero-Liability Emergency Handling | Auto-receipts get a hardcoded 911 footer. AI flags life-safety issues internally for the clerk only. | 100% of auto-responses include the unconditional 911 disclaimer; zero auto-routing to emergency services. |
+| Safety Flagging (no auto-response) | No automated receipt or reply is ever sent to a citizen without clerk review. AI flags life-safety issues internally for the clerk only. | Zero unconditional/automatic outbound messages of any kind; zero auto-routing to emergency services. |
 | Triage Dashboard (Trust Layer) | Simple, web-based internal UI showing a side-by-side comparison of raw text vs. AI analysis. | Operator can seamlessly edit/verify AI deductions and click "Approve". |
 | Zero-Integration Output Adapter | Output engine formatting approved data to bypass custom IT consulting. | Successfully generates perfectly structured system emails or standard CSVs for legacy DB entry. |
 | FOIA & Compliance Tooling | Built-in data handling for public records requests and municipal retention policies. | One-click CSV export of tickets; background cron jobs that automatically purge data past retention limits. |
@@ -35,6 +35,8 @@
 - Complex graphical data reporting: No analytics charts or advanced data visualization yet.
 
 **Revised 2026-07-17:** the original MVP scope excluded full authentication entirely ("hardcode one admin user profile"). That's been superseded — real multi-tenant growth is the actual goal, not a single permanent pilot, so tenant-level authentication (one shared login per municipality, JWT bearer tokens) is now in scope for the Trust Layer UI. See `TASKS.md` Phase 2 for the detailed design.
+
+**Revised 2026-07-17:** dropped the unconditional auto-responder / hardcoded 911 disclaimer entirely, not just its automation — no automatic email of any kind goes to a citizen before a clerk reviews it. Blake's read: this was an overly safety-focused idea that likely doesn't match how these municipalities' systems and liability processes currently work, and he's validating with prospective customers before reconsidering it. The Trust Layer's human-approval gate is now the *only* safety mechanism for outbound citizen communication — see the Citizen Notification design in `TASKS.md` Phase 3 for what replaces it (the AI-drafted response is emailed to the citizen only after a clerk approves the ticket, not automatically on intake).
 
 ## 5. The Moat & Defensibility
 

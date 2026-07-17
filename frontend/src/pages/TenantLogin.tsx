@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Landmark } from 'lucide-react';
+import Header from '../components/Header';
 import { setTenantToken } from '../tenantAuth';
 
 export default function TenantLogin() {
@@ -25,42 +27,61 @@ export default function TenantLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg shadow-sm p-8 w-full max-w-sm">
-        <h1 className="text-xl font-bold text-slate-900 mb-6">Municipal Triage Tool</h1>
+    <div className="h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-[400px] flex flex-col gap-5">
+          <div className="text-center mb-1">
+            <div
+              className="w-[52px] h-[52px] rounded-xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: 'oklch(0.27 0.06 250)' }}
+            >
+              <Landmark size={26} color="#fff" />
+            </div>
+            <h1 className="text-[21px] font-bold mb-1 font-serif">Sign in to CivicTriage</h1>
+            <div className="text-[13.5px] text-slate-500">Staff Portal</div>
+          </div>
 
-        <label className="block text-sm text-slate-700 mb-4">
-          Email
-          <input
-            type="email"
-            required
-            className="mt-1 w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
+          <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-[10px] p-[26px] flex flex-col gap-4 shadow-sm">
+            <label className="flex flex-col gap-1.5 text-[12.5px] font-semibold text-slate-600">
+              Work email
+              <input
+                type="email"
+                required
+                className="border border-slate-300 rounded-md px-3 py-2.5 text-sm font-normal"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
 
-        <label className="block text-sm text-slate-700 mb-6">
-          Password
-          <input
-            type="password"
-            required
-            className="mt-1 w-full border border-slate-300 rounded-md px-3 py-2 text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+            <label className="flex flex-col gap-1.5 text-[12.5px] font-semibold text-slate-600">
+              Password
+              <input
+                type="password"
+                required
+                className="border border-slate-300 rounded-md px-3 py-2.5 text-sm font-normal"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
 
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-60"
-        >
-          {isSubmitting ? 'Signing in...' : 'Sign In'}
-        </button>
-      </form>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="text-white rounded-md py-2.5 text-sm font-bold mt-1 disabled:opacity-60"
+              style={{ background: 'oklch(0.27 0.06 250)' }}
+            >
+              {isSubmitting ? 'Signing in...' : 'Sign in'}
+            </button>
+          </form>
+
+          <div className="text-center text-xs text-slate-500">
+            Having trouble signing in? Contact your system administrator.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

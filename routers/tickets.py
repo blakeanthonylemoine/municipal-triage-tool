@@ -35,6 +35,16 @@ def get_pending_tickets(db: Session = Depends(get_db), tenant_id: int = Depends(
     ).order_by(Ticket.created_at.desc()).all()
 
 
+@router.get("/api/tickets/approved", response_model=list[TicketOut])
+def get_approved_tickets(db: Session = Depends(get_db), tenant_id: int = Depends(require_tenant)):
+    # nullslast(): Postgres defaults DESC to NULLS FIRST, which would otherwise put
+    # tickets approved before approved_at existed above genuinely recent approvals.
+    return db.query(Ticket).filter(
+        Ticket.tenant_id == tenant_id,
+        Ticket.status == TicketStatus.APPROVED,
+    ).order_by(Ticket.approved_at.desc().nullslast()).all()
+
+
 @router.get("/api/categories", response_model=list[CategoryOut])
 def get_categories(db: Session = Depends(get_db), tenant_id: int = Depends(require_tenant)):
     return db.query(Category).filter(Category.tenant_id == tenant_id).order_by(Category.id).all()

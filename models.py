@@ -53,6 +53,12 @@ class Ticket(Base):
     raw_payload = Column(JSONB, nullable=False)  # The exact, untouched incoming payload
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
+    # The citizen's real sender address, from the forwarded email's actual
+    # envelope/header metadata (payload["from"]) -- authoritative when present.
+    # Distinct from ai_extracted_email, which is only a best-guess pulled from
+    # free text and is the sole option for the secondary web-form channel.
+    sender_email = Column(String(255), nullable=True)
+
     # AI Deductions (Nullable initially until the AI pipeline runs)
     ai_category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     ai_urgency = Column(Integer, nullable=True)  # Scale of 1 to 5
@@ -63,6 +69,12 @@ class Ticket(Base):
 
     # Internal UI Flag for the "Requires Immediate Human Review" feature
     flagged_for_safety = Column(Boolean, default=False)
+
+    # Set when a clerk approves the ticket; drives the "recently approved" ordering.
+    approved_at = Column(DateTime, nullable=True)
+    # Set only if the citizen-notification email actually sent successfully.
+    # A missing value on an approved ticket means no email was on file, or the send failed.
+    citizen_notified_at = Column(DateTime, nullable=True)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="tickets")

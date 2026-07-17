@@ -76,6 +76,7 @@ class TicketOut(BaseModel):
     status: TicketStatus
     raw_payload: dict
     created_at: datetime | None
+    sender_email: str | None
     ai_category_id: int | None
     ai_urgency: int | None
     ai_extracted_location: str | None
@@ -83,5 +84,7 @@ class TicketOut(BaseModel):
     ai_extracted_phone: str | None
     ai_drafted_response: str | None
     flagged_for_safety: bool
+    approved_at: datetime | None
+    citizen_notified_at: datetime | None
     input_tokens: int
     output_tokens: int
