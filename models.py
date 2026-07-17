@@ -59,6 +59,10 @@ class Ticket(Base):
     category = relationship("Category", back_populates="tickets")
     audit_logs = relationship("AuditLog", back_populates="ticket", cascade="all, delete-orphan")
 
+    # Tokens Used
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 

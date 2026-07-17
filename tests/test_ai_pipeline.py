@@ -31,5 +31,5 @@ def test_evaluate_ticket_schema_enforcement(mocker):
     # Verify the AI was called with the correct configuration parameters
     mock_client.assert_called_once()
     call_args = mock_client.call_args[1]
-    assert call_args["model"] == "gemini-2.5-flash"
+    assert call_args["model"] == "gemini-3.5-flash"
     assert call_args["config"]["response_schema"] == TriageResult

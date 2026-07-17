@@ -33,7 +33,7 @@ def evaluate_ticket(ticket_text: str, categories_context: str) -> TriageResult:
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-3.5-flash',
         contents=prompt,
         config={
             'response_mime_type': 'application/json',
@@ -41,6 +41,12 @@ def evaluate_ticket(ticket_text: str, categories_context: str) -> TriageResult:
             'temperature': 0.1, # Keep it highly deterministic
         },
     )
+
+    # Extract the token counts provided by Google's API
+    usage = {
+        "input": response.usage_metadata.prompt_token_count,
+        "output": response.usage_metadata.candidates_token_count
+    }
     
     # The SDK automatically validates and returns the Pydantic object
-    return response.parsed
+    return response.parsed, usage
