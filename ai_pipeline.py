@@ -8,7 +8,8 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 # Initialize the Gemini client
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+gemini_key = os.getenv("GEMINI_API_KEY") or "CI_DUMMY_KEY"
+client = genai.Client(api_key=gemini_key)
 
 class TriageResult(BaseModel):
     category_id: int | None = Field(description="The ID of the matching category, or null if no match.")
