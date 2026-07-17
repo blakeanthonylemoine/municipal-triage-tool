@@ -1,0 +1,56 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      # This spins up a throwaway Postgres database just for this test run
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: localpassword
+          POSTGRES_DB: triage_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install uv (Python Package Manager)
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: uv sync
+
+      - name: Run Database Migrations
+        # Point Alembic to the temporary database spawned by the services block
+        env:
+          DATABASE_URL: postgresql://admin:localpassword@localhost:5432/triage_test
+        run: uv run alembic upgrade head
+
+      - name: Run Pytest
+        # Point FastAPI to the temporary database
+        env:
+          DATABASE_URL: postgresql://admin:localpassword@localhost:5432/triage_test
+        run: uv run pytest
