@@ -1,23 +1,7 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface Ticket {
-  id: number;
-  raw_payload: { body?: string };
-  flagged_for_safety: boolean;
-  ai_category_id: number | null;
-  ai_urgency: number | null;
-  ai_extracted_location: string | null;
-  ai_extracted_email: string | null;
-  ai_extracted_phone: string | null;
-  ai_drafted_response: string | null;
-}
+import tenantApi from '../tenantApi';
+import type { Category, Ticket } from '../types';
 
 interface TicketDetailProps {
   ticket: Ticket;
@@ -50,7 +34,7 @@ export default function TicketDetail({ ticket, categories, onApproved }: TicketD
     setIsSaving(true);
     setError(null);
 
-    axios.patch(`http://localhost:8000/api/tickets/${ticket.id}/approve`, {
+    tenantApi.patch(`/api/tickets/${ticket.id}/approve`, {
       ai_category_id: categoryId ? Number(categoryId) : null,
       ai_urgency: urgency ? Number(urgency) : null,
       ai_extracted_location: location || null,

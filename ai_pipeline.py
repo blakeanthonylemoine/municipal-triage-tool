@@ -1,15 +1,10 @@
 # ai_pipeline.py
-import os
-from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel, Field
 
-# Load the API key from the .env file
-load_dotenv()
+from config import settings
 
-# Initialize the Gemini client
-gemini_key = os.getenv("GEMINI_API_KEY") or "CI_DUMMY_KEY"
-client = genai.Client(api_key=gemini_key)
+client = genai.Client(api_key=settings.gemini_api_key)
 
 class TriageResult(BaseModel):
     category_id: int | None = Field(description="The ID of the matching category, or null if no match.")

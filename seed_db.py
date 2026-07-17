@@ -1,49 +1,55 @@
 # seed_db.py
-"""Seeds a fictional test tenant and its categories for local dev/pilot testing.
+"""Seeds fictional test tenants for local dev/pilot testing.
 
-Uses a fictional municipality name, not a real target customer's name --
-Rivergate is not an actual prospect. Tenant is inserted with explicit id=1
-to match the frontend's hardcoded CURRENT_TENANT_ID
-(frontend/src/components/TicketQueue.tsx). Categories are inserted in the
-same order main.py's /webhook route hardcodes (Roads, Utilities, Parks,
-Code Violations) so the AI-returned category_id lines up with real rows.
+Never use a real target customer's name here -- these are throwaway dev
+fixtures, not real prospects. Each tenant is provisioned through
+tenant_service.provision_tenant so it gets real, working login
+credentials the same way the admin panel creates one -- no more pinning
+an explicit tenant id to match a frontend hardcode; tenant identity now
+comes from the JWT issued at login, not a hardcoded constant.
 """
-from sqlalchemy import text
 from database import SessionLocal
-from models import Tenant, Category
+from models import Category, Tenant
+from tenant_service import provision_tenant
 
-CATEGORY_NAMES = ["Roads", "Utilities", "Parks", "Code Violations"]
+TEST_TENANTS = [
+    {
+        "name": "City of Rivergate",
+        "login_email": "rivergate@gmail.com",
+        "password": "rivergate",
+        "categories": ["Roads", "Utilities", "Parks", "Code Violations"],
+    },
+    {
+        "name": "Town of Ashcombe",
+        "login_email": "ashcombe@example.com",
+        "password": "ashcombe123",
+        "categories": ["Sanitation", "Animal Control", "Streetlights", "Permitting"],
+    },
+]
+
 
 def seed():
     db = SessionLocal()
     try:
-        existing = db.query(Tenant).filter(Tenant.id == 1).first()
-        if existing:
-            print(f"Tenant id=1 already exists ({existing.name!r}); skipping seed.")
-            return
+        for spec in TEST_TENANTS:
+            existing = db.query(Tenant).filter(
+                (Tenant.name == spec["name"]) | (Tenant.login_email == spec["login_email"])
+            ).first()
+            if existing:
+                print(f"Tenant {spec['name']!r} already exists; skipping.")
+                continue
 
-        tenant = Tenant(id=1, name="City of Rivergate", config={})
-        db.add(tenant)
-        db.flush()  # assign tenant.id before categories reference it
+            tenant = provision_tenant(
+                db, name=spec["name"], login_email=spec["login_email"], password=spec["password"]
+            )
+            for category_name in spec["categories"]:
+                db.add(Category(tenant_id=tenant.id, name=category_name, is_emergency_flag=False))
+            db.commit()
 
-        for name in CATEGORY_NAMES:
-            db.add(Category(tenant_id=tenant.id, name=name, is_emergency_flag=False))
-
-        db.commit()
-
-        # Realign the sequences so future inserts don't collide with the
-        # explicit id=1 we just used.
-        db.execute(text(
-            "SELECT setval('tenants_id_seq', (SELECT MAX(id) FROM tenants))"
-        ))
-        db.execute(text(
-            "SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))"
-        ))
-        db.commit()
-
-        print("Seeded tenant 'City of Rivergate' (id=1) with 4 categories.")
+            print(f"Seeded tenant {spec['name']!r} ({spec['login_email']}) with {len(spec['categories'])} categories.")
     finally:
         db.close()
+
 
 if __name__ == "__main__":
     seed()

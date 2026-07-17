@@ -1,15 +1,10 @@
 # File: database.py
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Local database URL matching our docker-compose environment
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://admin:localpassword@localhost:5432/triage_development"
-)
+from config import settings
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

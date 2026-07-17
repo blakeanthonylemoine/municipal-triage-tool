@@ -21,6 +21,10 @@ class Tenant(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     retention_days = Column(Integer, default=1095)
 
+    # One shared login per tenant, provisioned/reset manually by the admin.
+    login_email = Column(String(255), unique=True, nullable=True)
+    hashed_password = Column(String(255), nullable=True)
+
     # Relationships
     categories = relationship("Category", back_populates="tenant", cascade="all, delete-orphan")
     tickets = relationship("Ticket", back_populates="tenant", cascade="all, delete-orphan")
