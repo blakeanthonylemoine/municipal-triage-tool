@@ -15,6 +15,8 @@ class TriageResult(BaseModel):
     category_id: int | None = Field(description="The ID of the matching category, or null if no match.")
     urgency_score: int = Field(description="Scale of 1 to 5, where 5 is a life-safety emergency.")
     extracted_location: str | None = Field(description="The physical location of the issue, if mentioned.")
+    extracted_email: str | None = Field(description="The citizen's email address, if mentioned.")
+    extracted_phone: str | None = Field(description="The citizen's phone number, if mentioned.")
     drafted_response: str = Field(description="A polite, 2-sentence draft response to the citizen.")
 
 def evaluate_ticket(ticket_text: str, categories_context: str) -> TriageResult:

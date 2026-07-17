@@ -19,6 +19,7 @@ class Tenant(Base):
     name = Column(String(255), nullable=False)
     config = Column(JSONB, nullable=False, default={})  # Holds target legacy emails/endpoints
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    retention_days = Column(Integer, default=1095)
 
     # Relationships
     categories = relationship("Category", back_populates="tenant", cascade="all, delete-orphan")
@@ -52,7 +53,12 @@ class Ticket(Base):
     ai_category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     ai_urgency = Column(Integer, nullable=True)  # Scale of 1 to 5
     ai_extracted_location = Column(String(500), nullable=True)
+    ai_extracted_email = Column(String(255), nullable=True)
+    ai_extracted_phone = Column(String(50), nullable=True)
     ai_drafted_response = Column(Text, nullable=True)
+
+    # Internal UI Flag for the "Requires Immediate Human Review" feature
+    flagged_for_safety = Column(Boolean, default=False)
 
     # Relationships
     tenant = relationship("Tenant", back_populates="tickets")
